@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+      
+        const firebaseConfig = {
+          apiKey: "AIzaSyDBEb3xDLtfBWCW2tBHLXDz9qgmMgpONrI",
+          authDomain: "mdchat-17827.firebaseapp.com",
+          databaseURL: "https://mdchat-17827-default-rtdb.firebaseio.com",
+          projectId: "mdchat-17827",
+          storageBucket: "mdchat-17827.firebasestorage.app",
+          messagingSenderId: "961519943444",
+          appId: "1:961519943444:web:3280e185498c9b91b34c01"
+        };
+      
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getDatabase(app);
+      
+        // متابعة حالة المستخدم (تسجيل الدخول)
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            const userId = user.uid;
+            document.getElementById("start-chat-btn").addEventListener("click", () => {
+              const recipientUsername = document.getElementById("recipient-input").value.trim();
+              if (recipientUsername) {
+                startNewChat(userId, recipientUsername);
+              } else {
+                alert("من فضلك أدخل اسم المستخدم للمستلم");
+              }
+            });
+          }
+        });
+      
+        // بدء المحادثة
+        function startNewChat(userId, recipientUsername) {
+          const chatRef = ref(db, 'chats/' + userId + '/' + recipientUsername);
+      
+          // التحقق إذا كانت المحادثة موجودة بالفعل
+          get(chatRef).then((snapshot) => {
+            if (!snapshot.exists()) {
+              // إذا كانت المحادثة غير موجودة، نقوم بإنشائها مع أول رسالة
+              set(chatRef, {
+                messages: ["مرحباً! كيف حالك؟"]
+              }).then(() => {
+                alert("تم بدء المحادثة!");
+                window.location.href = "chat.html?username=" + recipientUsername; // الانتقال إلى صفحة المحادثة
+              }).catch((error) => {
+                console.error('حدث خطأ أثناء بدء المحادثة:', error);
+              });
+            } else {
+              alert("المحادثة موجودة بالفعل");
+              window.location.href = "chat.html?username=" + recipientUsername; // الانتقال إلى صفحة المحادثة
+            }
+          }).catch((error) => {
+            console.error('حدث خطأ أثناء التحقق من المحادثة:', error);
+          });
+        }
+      </script>
+    <body>
+        <div id="new-chat">
+            <h3>ابدأ محادثة جديدة</h3>
+            <input type="text" id="recipient-input" placeholder="أدخل اسم المستخدم للمستلم" />
+            <button id="start-chat-btn">ابدأ المحادثة</button>
+          </div>
+
+    </body>
+</html>
