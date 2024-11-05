@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الصفحة الرئيسية</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBEb3xDLtfBWCW2tBHLXDz9qgmMgpONrI",
+      authDomain: "mdchat-17827.firebaseapp.com",
+      databaseURL: "https://mdchat-17827-default-rtdb.firebaseio.com",
+      projectId: "mdchat-17827",
+      storageBucket: "mdchat-17827.firebasestorage.app",
+      messagingSenderId: "961519943444",
+      appId: "1:961519943444:web:3280e185498c9b91b34c01"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getDatabase(app);
+    const googleProvider = new GoogleAuthProvider();
+
+    // تسجيل الدخول
+    function login() {
+      signInWithPopup(auth, googleProvider).then((result) => {
+        const user = result.user;
+        const userRef = ref(db, 'users/' + user.uid);
+        get(userRef).then((snapshot) => {
+          if (!snapshot.exists()) {
+            // إذا لم يكن هناك username، يطلب إدخاله
+            const username = prompt("من فضلك أدخل اسم المستخدم:");
+            set(userRef, {
+              username: username,
+              email: user.email
+            });
+          }
+        });
+      }).catch((error) => {
+        console.error('خطأ في تسجيل الدخول:', error);
+      });
+    }
+
+    // تسجيل الخروج
+    function logout() {
+      signOut(auth).then(() => {
+        window.location.reload();
+      }).catch((error) => {
+        console.error('خطأ في تسجيل الخروج:', error);
+      });
+    }
+
+    // متابعة حالة المستخدم (تسجيل الدخول)
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const userRef = ref(db, 'users/' + user.uid);
+        get(userRef).then((snapshot) => {
+          if (snapshot.exists()) {
+            const username = snapshot.val().username;
+            document.getElementById("username").textContent = `مرحباً ${username}`;
+            loadChats();
+          }
+        });
+        document.getElementById("login-btn").style.display = 'none';
+        document.getElementById("logout-btn").style.display = 'block';
+      } else {
+        document.getElementById("login-btn").style.display = 'block';
+        document.getElementById("logout-btn").style.display = 'none';
+      }
+    });
+
+    // تحميل المحادثات
+    function loadChats() {
+      const userId = auth.currentUser.uid;
+      const chatsRef = ref(db, 'chats/' + userId);
+
+      onValue(chatsRef, (snapshot) => {
+        const data = snapshot.val();
+        const chatList = document.getElementById("chat-list");
+        chatList.innerHTML = ''; // مسح المحادثات السابقة
+
+        for (const username in data) {
+          const chat = data[username];
+          const lastMessage = chat.messages[chat.messages.length - 1];
+          const listItem = document.createElement("li");
+          listItem.innerHTML = `<a href="chat.html?username=${username}">${username}: ${lastMessage}</a>`;
+          chatList.appendChild(listItem);
+        }
+      });
+    }
+
+    document.getElementById("login-btn").addEventListener("click", login);
+    document.getElementById("logout-btn").addEventListener("click", logout);
+
+  </script>
+</head>
+<body>
+
+  <div id="user-container">
+    <button id="login-btn">تسجيل الدخول عبر Google</button>
+    <button id="logout-btn" style="display:none;">تسجيل الخروج</button>
+    <span id="username"></span>
+  </div>
+
+  <div id="chat-container">
+    <h2>المحادثات</h2>
+    <ul id="chat-list"></ul>
+  </div>
+
+</body>
+</html>
